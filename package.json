@@ -1,0 +1,30 @@
+{
+  "name": "astromatch",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "astronomy-engine": "^2.1.19",
+    "axios": "^1.7.9",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "dotenv-webpack": "^8.1.0",
+    "express": "^4.21.2",
+    "geolib": "^3.3.4",
+    "moment-timezone": "^0.5.46",
+    "node-geocoder": "^4.4.1",
+    "opencage-api-client": "^1.0.7",
+    "sweph": "^2.10.3-4",
+    "swisseph": "^0.5.17",
+    "tz-lookup": "^6.1.25"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
