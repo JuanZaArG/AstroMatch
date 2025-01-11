@@ -1,0 +1,21 @@
+services:
+  web:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    ports:
+      - "3000:3000"
+    env:
+      NODE_ENV: production
+      PORT: 3000
+    healthchecks:
+      http:
+        url: /healthcheck
+        timeout: 10
+        interval: 20
+        unhealthy:
+          http:
+            status: 500
+    deployment:
+      replicas: 1
+      type: docker
