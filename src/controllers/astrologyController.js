@@ -2,46 +2,7 @@ const axios = require('axios');
 const swisseph = require('swisseph');
 const path = require('path');
 
-
 const OPENCAGE_API_KEY = '74568d97762440b1bf521089c397be7d';
-
-
-function getZodiacSignByLongitude(longitude) {
-  if (longitude >= 0 && longitude < 30) return 'Aries';
-  if (longitude >= 30 && longitude < 60) return 'Taurus';
-  if (longitude >= 60 && longitude < 90) return 'Gemini';
-  if (longitude >= 90 && longitude < 120) return 'Cancer';
-  if (longitude >= 120 && longitude < 150) return 'Leo';
-  if (longitude >= 150 && longitude < 180) return 'Virgo';
-  if (longitude >= 180 && longitude < 210) return 'Libra';
-  if (longitude >= 210 && longitude < 240) return 'Scorpio';
-  if (longitude >= 240 && longitude < 270) return 'Sagittarius';
-  if (longitude >= 270 && longitude < 300) return 'Capricorn';
-  if (longitude >= 300 && longitude < 330) return 'Aquarius';
-  if (longitude >= 330 && longitude < 360) return 'Pisces';
-  return 'Desconocido';
-}
-
-
-function getHouse(longitude, houseLongitudes) {
-  for (let i = 0; i < houseLongitudes.length; i++) {
-    const nextIndex = (i + 1) % houseLongitudes.length;
-    const start = houseLongitudes[i];
-    const end = houseLongitudes[nextIndex];
-
-    if (start < end) {
-      if (longitude >= start && longitude < end) {
-        return i + 1;
-      }
-    } else {
-      if (longitude >= start || longitude < end) {
-        return i + 1;
-      }
-    }
-  }
-  return null;
-}
-
 
 async function getCoordinates(location) {
   try {
@@ -63,7 +24,42 @@ async function getCoordinates(location) {
   }
 }
 
-exports.calculateChart = async (req, res) => {
+function getZodiacSignByLongitude(longitude) {
+  if (longitude >= 0 && longitude < 30) return 'Aries';
+  if (longitude >= 30 && longitude < 60) return 'Taurus';
+  if (longitude >= 60 && longitude < 90) return 'Gemini';
+  if (longitude >= 90 && longitude < 120) return 'Cancer';
+  if (longitude >= 120 && longitude < 150) return 'Leo';
+  if (longitude >= 150 && longitude < 180) return 'Virgo';
+  if (longitude >= 180 && longitude < 210) return 'Libra';
+  if (longitude >= 210 && longitude < 240) return 'Scorpio';
+  if (longitude >= 240 && longitude < 270) return 'Sagittarius';
+  if (longitude >= 270 && longitude < 300) return 'Capricorn';
+  if (longitude >= 300 && longitude < 330) return 'Aquarius';
+  if (longitude >= 330 && longitude < 360) return 'Pisces';
+  return 'Desconocido';
+}
+
+function getHouse(longitude, houseLongitudes) {
+  for (let i = 0; i < houseLongitudes.length; i++) {
+    const nextIndex = (i + 1) % houseLongitudes.length;
+    const start = houseLongitudes[i];
+    const end = houseLongitudes[nextIndex];
+
+    if (start < end) {
+      if (longitude >= start && longitude < end) {
+        return i + 1;
+      }
+    } else {
+      if (longitude >= start || longitude < end) {
+        return i + 1;
+      }
+    }
+  }
+  return null;
+}
+
+async function calculateChart(req, res) {
   const { date, location } = req.body;
 
   if (!date || !location) {
@@ -71,28 +67,26 @@ exports.calculateChart = async (req, res) => {
   }
 
   try {
-
     const { latitude, longitude } = await getCoordinates(location);
     console.log(`Coordenadas obtenidas: ${latitude}, ${longitude}`);
 
-    const utcDate = new Date(date);
+    const utcDatetime = new Date(date); // La fecha ya viene en UTC desde el frontend
+    console.log('Fecha ajustada a UTC:', utcDatetime.toISOString());
 
-   
     swisseph.swe_set_ephe_path(path.join(__dirname, '../eph'));
 
-    
     const julianDay = swisseph.swe_julday(
-      utcDate.getUTCFullYear(),
-      utcDate.getUTCMonth() + 1, 
-      utcDate.getUTCDate(),
-      utcDate.getUTCHours() + utcDate.getUTCMinutes() / 60,
+      utcDatetime.getUTCFullYear(),
+      utcDatetime.getUTCMonth() + 1,
+      utcDatetime.getUTCDate(),
+      utcDatetime.getUTCHours() + utcDatetime.getUTCMinutes() / 60,
       swisseph.SE_GREG_CAL
     );
 
-    
     const housesData = await new Promise((resolve, reject) => {
-      swisseph.swe_houses(julianDay, latitude, longitude, 'R', (houses) => {
+      swisseph.swe_houses(julianDay, latitude, longitude, 'P', (houses) => {
         if (houses.error) {
+          console.error('Error al calcular las casas:', houses.error);
           return reject(houses.error);
         }
         resolve(houses);
@@ -100,9 +94,8 @@ exports.calculateChart = async (req, res) => {
     });
 
     const houseLongitudes = housesData.house;
-    const ascendantLongitude = housesData.ascendant; 
+    const ascendantLongitude = housesData.ascendant;
 
-   
     const planets = [
       { id: swisseph.SE_SUN, name: 'Sun' },
       { id: swisseph.SE_MOON, name: 'Moon' },
@@ -121,14 +114,15 @@ exports.calculateChart = async (req, res) => {
         return new Promise((resolve, reject) => {
           swisseph.swe_calc_ut(julianDay, planet.id, swisseph.SEFLG_SWIEPH, (planetData) => {
             if (planetData.error) {
+              console.error(`Error al calcular la posición del planeta ${planet.name}:`, planetData.error);
               return reject(planetData.error);
             }
-            const lon = planetData.longitude; 
+            const lon = planetData.longitude;
             resolve({
               name: planet.name,
               longitude: lon,
               sign: getZodiacSignByLongitude(lon),
-              house: getHouse(lon, houseLongitudes), 
+              house: getHouse(lon, houseLongitudes),
             });
           });
         });
@@ -157,6 +151,9 @@ exports.calculateChart = async (req, res) => {
       planets: planetResults,
     });
   } catch (error) {
+    console.error('Error general:', error);
     res.status(500).json({ error: error.message });
   }
-};
+}
+
+module.exports = { calculateChart };
