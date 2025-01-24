@@ -1,8 +1,13 @@
-const express = require('express');
-const { calculateChart } = require('../controllers/astrologyController');
+import express from 'express';
+import { calculateChart } from '../controllers/astrologyController.js';
+import { sendToGoogleSheet } from '../controllers/googleSheetController.js'; 
+
 const router = express.Router();
 
-
+// Rutas existentes
 router.post('/chart', calculateChart);
 
-module.exports = router;
+// Nueva ruta para enviar datos al Google Sheet
+router.post('/send-to-google-sheet', sendToGoogleSheet);
+
+export default router;

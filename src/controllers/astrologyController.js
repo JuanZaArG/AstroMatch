@@ -1,8 +1,13 @@
-const axios = require('axios');
-const swisseph = require('swisseph');
-const path = require('path');
+import axios from 'axios';
+import swisseph from 'swisseph';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { callSambanovaApi } from '../config/sambanovaApi.js'; // Importa la función del bot
 
 const OPENCAGE_API_KEY = '74568d97762440b1bf521089c397be7d';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function getCoordinates(location) {
   try {
@@ -59,18 +64,71 @@ function getHouse(longitude, houseLongitudes) {
   return null;
 }
 
-async function calculateChart(req, res) {
-  const { date, location } = req.body;
+/**
+ * Nueva función: Genera el análisis astrológico usando Sambanova
+ */
+async function generateAstrologyAnalysis(name, ascendant, houses, planets) {
+  const sun = planets['Sun'];
+  const moon = planets['Moon'];
 
-  if (!date || !location) {
-    return res.status(400).json({ error: 'Faltan parámetros: date, location' });
+  const prompt = `
+   ¡Hola ${name}! Soy una Maestra en Astrología (✨), y tengo muchísima experiencia analizando cartas astrales.
+   Analiza los siguientes datos astrológicos de ${name}:
+    - Sol: ${sun.sign}
+    - Luna: ${moon.sign}
+    - Ascendente: ${ascendant.sign}
+    - Casa 1: ${houses[0].sign}
+    - Casa 2: ${houses[1].sign}
+    
+  ejemplo de cómo estructurar la respuesta:
+  <h2>Soy AstroSage 🧚</h2>
+  <p> ${name} inventate un transfondo como que llevas siglos estudiando las estrellas y cierra con algo asi como veamos que dicen las estrellas </p>
+
+  <h2>☀️ ${sun.sign}</h2>
+  <p>El Sol...</p>
+
+  <h2>🌙 ${moon.sign}</h2>
+  <p>La Luna...</p>
+
+  <h2>🏆 ${ascendant.sign}</h2>
+  <p>Tu Ascendente ${name} muestra que eres...</p>
+
+  <h2>(1️⃣ ${houses[0].sign}</h2>
+  <p>En la Casa 1 ...</p>
+
+  <h2> 2️⃣ ${houses[1].sign}</h2>
+  <p>La Casa 2 sugiere...</p>
+
+  <p><span style="color: red;">En el amor, tu característica principal es...</span></p>
+
+  <h3>${name}! inventa algo como estoy viendo muuucho más de ti y tus relaciones amorosas en las estrellas  ... y cierra con una pregunta abierta</h3>
+  <a href="oferta.html" class="button">¡Oferta Exclusiva! 🎁</a>
+  `;
+
+  console.log('Prompt generado:', prompt);
+
+  try {
+    const analysis = await callSambanovaApi(prompt);
+    return analysis;
+  } catch (error) {
+    console.error('Error al generar el análisis con Sambanova:', error.message);
+    throw new Error('No se pudo generar el análisis astrológico.');
+  }
+}
+
+
+export const calculateChart = async (req, res) => {
+  const { name, date, location } = req.body;
+
+  if (!name || !date || !location) {
+    return res.status(400).json({ error: 'Faltan parámetros: name, date, location' });
   }
 
   try {
     const { latitude, longitude } = await getCoordinates(location);
     console.log(`Coordenadas obtenidas: ${latitude}, ${longitude}`);
 
-    const utcDatetime = new Date(date); // La fecha ya viene en UTC desde el frontend
+    const utcDatetime = new Date(date);
     console.log('Fecha ajustada a UTC:', utcDatetime.toISOString());
 
     swisseph.swe_set_ephe_path(path.join(__dirname, '../eph'));
@@ -138,22 +196,30 @@ async function calculateChart(req, res) {
       };
     });
 
+    const ascendant = {
+      longitude: ascendantLongitude,
+      sign: getZodiacSignByLongitude(ascendantLongitude),
+    };
+
+    const houses = houseLongitudes.map((lon, index) => ({
+      house: index + 1,
+      longitude: lon,
+      sign: getZodiacSignByLongitude(lon),
+    }));
+
+    // Llama a la función para generar el análisis astrológico
+    const analysis = await generateAstrologyAnalysis(name, ascendant, houses, planetResults);
+
     res.json({
-      ascendant: {
-        longitude: ascendantLongitude,
-        sign: getZodiacSignByLongitude(ascendantLongitude),
-      },
-      houses: houseLongitudes.map((lon, index) => ({
-        house: index + 1,
-        longitude: lon,
-        sign: getZodiacSignByLongitude(lon),
-      })),
+      ascendant,
+      houses,
       planets: planetResults,
+      analysis, // Incluye el análisis generado
     });
   } catch (error) {
     console.error('Error general:', error);
     res.status(500).json({ error: error.message });
   }
-}
+};
 
-module.exports = { calculateChart };
+

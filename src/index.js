@@ -1,19 +1,24 @@
-const express = require('express');
-const cors = require('cors');
-const astrologyRoutes = require('./routes/api');
-const app = express();
-const PORT = 3000;
+import express from 'express';
+import cors from 'cors';
+import astrologyRoutes from './routes/api.js'; 
 
-const astronomyEngine = require('astronomy-engine');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors()); // Permitir conexiones desde el frontend
+app.use(cors({
+  origin: 'http://127.0.0.1:5500', // Cambia al origen de tu frontend
+  methods: ['GET', 'POST'], // Métodos permitidos
+  allowedHeaders: ['Content-Type'], // Headers permitidos
+}));
+
 app.use(express.json());
 
-// Rutas
-app.use('/api', astrologyRoutes);
+// Routes
+app.use('/api', astrologyRoutes); // Montar rutas en "/api"
 
-// Iniciar servidor
+// Start server
 app.listen(PORT, () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+  console.log(`Server running at http://localhost:${PORT}`);
 });
