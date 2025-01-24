@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({
-  origin: 'http://127.0.0.1:5500', // Cambia al origen de tu frontend
+  origin: 'https://astromatchup.netlify.app', // Cambia al origen de tu frontend
   methods: ['GET', 'POST'], // Métodos permitidos
   allowedHeaders: ['Content-Type'], // Headers permitidos
 }));
