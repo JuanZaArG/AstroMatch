@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "start": "node index.js"
-    
   },
+
+
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -18,8 +20,12 @@
     "dotenv-webpack": "^8.1.0",
     "express": "^4.21.2",
     "geolib": "^3.3.4",
+    "luxon": "^3.5.0",
     "moment-timezone": "^0.5.46",
+    "mongodb": "^6.12.0",
+    "node-fetch": "^3.3.2",
     "node-geocoder": "^4.4.1",
+    "openai": "^4.79.1",
     "opencage-api-client": "^1.0.7",
     "sweph": "^2.10.3-4",
     "swisseph": "^0.5.17",
@@ -28,4 +34,6 @@
   "devDependencies": {
     "nodemon": "^3.1.9"
   }
+
+  
 }
